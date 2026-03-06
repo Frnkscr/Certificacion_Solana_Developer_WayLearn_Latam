@@ -7,25 +7,12 @@ pub mod promotora {
     use super::*;
     pub fn crea_promotora(ctx: Context<NuevaPromotora>,nombre:String) -> Result<()>{
         require!(!nombre.trim().is_empty(), Errores::NombreVacio);
-        let promotora = &mut ctx.accounts.promotora;
-        promotora.owner = ctx.accounts.owner.key();
-        promotora.nombre_promotora = nombre;
-        promotora.activo = true;
-        promotora.bump = ctx.bumps.promotora;
-
-        promotora.next_recinto_id = 0; //Se inicializa el contador de recintos
-        Ok(())
-    }
-
-    pub fn new_promotora(ctx: Context<NuevaPromotora>, nombre: String) -> Result<()> {
-        require!(!nombre.trim().is_empty(), Errores::NombreVacio);
         let owner_id = ctx.accounts.owner.key();
         let promotora = Promotora {
             owner: owner_id,
             nombre_promotora : nombre.clone(),
             activo : true,
-            bump: ctx.bumps.promotora,
-            next_recinto_id : 0
+            next_recinto_id : 0,
         };
 
         ctx.accounts.promotora.set_inner(promotora);
@@ -62,7 +49,6 @@ pub mod promotora {
         recinto.recinto_num = num;
         recinto.capacidad_maxima = capacidad_max;
         recinto.activo = true;
-        recinto.bump = ctx.bumps.recinto;
         //Guardamos el id en la promotora para llevar el consecutivo
         promotora.next_recinto_id = promotora.next_recinto_id.checked_add(1).unwrap();
 
@@ -96,7 +82,6 @@ pub struct Promotora {
     #[max_len(60)]
     pub nombre_promotora: String,
     pub activo: bool,
-    pub bump: u8,
     pub next_recinto_id:u64,
 }
 
@@ -112,7 +97,6 @@ pub struct Recinto {
     pub recinto_num: u64, //Identifica cual es el numero y en que momento se creo para cada promotora
     pub capacidad_maxima: u32, // Para validar al momento de crear las secciónes y no exceder la capacidad.
     pub activo: bool,
-    pub bump: u8,
 }
 
 #[account]
@@ -126,7 +110,6 @@ pub struct Seccion {
     pub seccion_id: String,
     pub capacidad: u32,
     pub activo: bool,
-    pub bump: u8,
 }
 
 
@@ -154,7 +137,7 @@ pub struct NuevoRecinto<'info>{
     #[account(
         mut,
         seeds = [b"promotora",owner.key().as_ref()],
-        bump = promotora.bump,
+        bump 
     )]
     pub promotora : Account<'info, Promotora>,
 
