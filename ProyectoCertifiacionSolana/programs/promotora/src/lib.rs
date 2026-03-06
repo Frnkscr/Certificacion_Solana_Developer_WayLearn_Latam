@@ -63,7 +63,6 @@ pub mod promotora {
 
         Ok(())
     }
-
   
 }
 
@@ -125,32 +124,12 @@ pub struct Seccion {
     pub activo: bool,
 }
 
-#[account]
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, PartialEq, Eq)]
 pub enum BloqueHorario {
     Matutino, // 0
     Vespertina, // 1
     Nocturno, // 2
 }
- 
-#[account]
-#[derive(InitSpace)]
-pub struct Evento {
-    pub owner:Pubkey,
-    pub recinto_pda:Pubkey,
-    #[max_len(100)]
-    pub nombre_evento:String,
-    pub fecha_evento_yyyy:u16,
-    pub fecha_evento_mm:u8,
-    pub fecha_evento_dd:u8,
-    pub bloque_horario: BloqueHorario,
-    #[max_len(8)]
-    pub hora_evento:String,
-    pub cancelado: bool,
-    #[max_len(120)]
-    pub motivo_cancelacion:String,
-}
-
 
 impl BloqueHorario {
     pub fn as_u8(&self)-> u8 {
@@ -161,6 +140,26 @@ impl BloqueHorario {
         }
     }
 }
+
+
+#[account]
+#[derive(InitSpace)]
+pub struct Evento {
+    pub owner:Pubkey,
+    pub recinto_pda:Pubkey,
+    #[max_len(100)]
+    pub nombre_evento:String,
+    pub fecha_evento_yyyy:u16,
+    pub fecha_evento_mm:u8,
+    pub fecha_evento_dd:u8,
+    pub bloque_horario: u8,
+    #[max_len(8)]
+    pub hora_evento:String,
+    pub cancelado: bool,
+    #[max_len(120)]
+    pub motivo_cancelacion:String,
+}
+
 
 //-------------------------------------
 //-------------------------------------
