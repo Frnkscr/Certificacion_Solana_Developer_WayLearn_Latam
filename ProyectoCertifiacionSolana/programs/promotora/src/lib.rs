@@ -28,32 +28,43 @@ pub mod promotora {
 
     pub fn crea_recinto(
             ctx: Context<NuevoRecinto>, 
-            recinto_id:String,  
-            recinto_nombre: String,
-            capacidad_max: u32,
+            _id:String,  
+            _nombre: String,
+            cap_max: u32,
             ) -> Result<()>{
-        require!(!recinto_id.trim().is_empty(), Errores::RecintoIdVacio);
-        require!(recinto_id.as_bytes().len() <= 32, Errores::RecintoIdLargo);
-        require!(!recinto_nombre.trim().is_empty(),Errores::RecintoNombreVacio);
-        require!(capacidad_max != 0,Errores::CapacidadMaxVacia);
+        require!(!_id.trim().is_empty(), Errores::RecintoIdVacio);
+        require!(_id.as_bytes().len() <= 32, Errores::RecintoIdLargo);
+        require!(!_nombre.trim().is_empty(),Errores::RecintoNombreVacio);
+        require!(cap_max != 0,Errores::CapacidadMaxVacia);
 
+        let owner_id = ctx.accounts.owner.key();
         let promotora = &mut ctx.accounts.promotora;
-        let recinto = &mut ctx.accounts.recinto;
-
         let num = promotora.next_recinto_id;
 
-        recinto.owner = ctx.accounts.owner.key();
-        recinto.promotora_pda = promotora.key();
-        recinto.recinto_id = recinto_id;
-        recinto.recinto_nombre = recinto_nombre;
-        recinto.recinto_num = num;
-        recinto.capacidad_maxima = capacidad_max;
-        recinto.activo = true;
+        let recinto = Recinto {
+            owner: owner_id,
+            promotora_pda: promotora.key(),
+            recinto_id : _id,
+            recinto_nombre: _nombre.clone(),
+            recinto_num: num,
+            capacidad_maxima: cap_max,
+            activo: true,
+        };
+
+        ctx.accounts.recinto.set_inner(recinto);
+
+        msg!(
+            "Recinto {}, Creado con exito. Owner id: {}",
+            _nombre,
+            owner_id
+        );
         //Guardamos el id en la promotora para llevar el consecutivo
         promotora.next_recinto_id = promotora.next_recinto_id.checked_add(1).unwrap();
 
         Ok(())
     }
+
+  
 }
 
 #[error_code]
@@ -99,6 +110,8 @@ pub struct Recinto {
     pub activo: bool,
 }
 
+
+
 #[account]
 #[derive(InitSpace)]
 pub struct Seccion {
@@ -112,8 +125,47 @@ pub struct Seccion {
     pub activo: bool,
 }
 
+#[account]
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, PartialEq, Eq)]
+pub enum BloqueHorario {
+    Matutino, // 0
+    Vespertina, // 1
+    Nocturno, // 2
+}
+ 
+#[account]
+#[derive(InitSpace)]
+pub struct Evento {
+    pub owner:Pubkey,
+    pub recinto_pda:Pubkey,
+    #[max_len(100)]
+    pub nombre_evento:String,
+    pub fecha_evento_yyyy:u16,
+    pub fecha_evento_mm:u8,
+    pub fecha_evento_dd:u8,
+    pub bloque_horario: BloqueHorario,
+    #[max_len(8)]
+    pub hora_evento:String,
+    pub cancelado: bool,
+    #[max_len(120)]
+    pub motivo_cancelacion:String,
+}
 
+
+impl BloqueHorario {
+    pub fn as_u8(&self)-> u8 {
+        match self {
+            BloqueHorario::Matutino => 0,
+            BloqueHorario::Vespertina => 1,
+            BloqueHorario::Nocturno => 2,
+        }
+    }
+}
+
+//-------------------------------------
+//-------------------------------------
 //Cuentas -> Seeds
+//-------------------------------------
 #[derive(Accounts)]
 pub struct NuevaPromotora<'info> {
     #[account(mut)]
@@ -157,20 +209,28 @@ pub struct NuevoRecinto<'info>{
     pub system_program: Program<'info, System>,
 }
 
-
-
-
-
-/* 
-#[account]
-#[derive(InitSpace)]
-pub struct Evento {
-    owner:Pubkey,
-    recinto_pda:Pubkey,
-    #[max_len(100)]
-    nombre_evento:String,
-    fecha_evento_yyyy:u16,
-    fecha_evento_mm:u16,
-    fecha_evento_dd:u16,
+#[derive(Accounts)]
+#[instruction(yyyy: u16, mm:u8, dd:u8, bloque:BloqueHorario)]
+pub struct NuevoEvento<'info>{
+    #[account(mut)]
+    pub owner: Signer<'info>,
+    pub recinto: Account<'info, Recinto>,
+    #[account(
+        init,
+        payer = owner,
+        space = Evento::INIT_SPACE+8,
+        seeds = [
+            b"evento",
+            recinto.key().as_ref(),
+            &yyyy.to_le_bytes(),
+            &[mm],
+            &[dd],
+            &[bloque.as_u8()]
+        ],
+        bump
+    )]
+    pub evento: Account<'info, Evento>,
+    pub system_program: Program<'info, System>,
 }
-*/
+
+
