@@ -64,23 +64,3 @@ Esto evita entrar en complejidad de timestamps/timezones para este aprendizaje.
 
 ---
 
-## 2) PDAs y Seeds (por qué y para qué)
-
-En Solana, una **PDA** es una dirección determinista derivada de:
-
-- `program_id`
-- `seeds`
-- `bump` (calculado por el runtime / Anchor)
-
-La ventaja es que **no necesitas guardar direcciones**: puedes recalcularlas siempre con la misma receta.
-
----
-
-### PDA de Promotora
-
-**Seeds:**
-- `"promotora"`
-- `owner_pubkey`
-
-```text
-PDA(promotora) = ["promotora", owner]
