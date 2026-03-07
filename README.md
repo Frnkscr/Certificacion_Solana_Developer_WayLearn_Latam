@@ -64,3 +64,5 @@ Esto evita entrar en complejidad de timestamps/timezones para este aprendizaje.
 
 ---
 
+## 2) Ejemplos para pruebas en ruta client/client.ts
+
