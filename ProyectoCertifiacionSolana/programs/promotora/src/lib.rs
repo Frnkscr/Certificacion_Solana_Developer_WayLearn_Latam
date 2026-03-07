@@ -63,6 +63,12 @@ pub mod promotora {
         Ok(())
     }
 
+    pub fn elimina_recinto(
+        ctx: Context<EliminaRecinto>,
+    ) -> Result<()>{
+        Ok(())
+    }
+
     pub fn crea_evento(
         ctx: Context<NuevoEvento>,
         _nombre: String,
@@ -105,7 +111,10 @@ pub mod promotora {
 
     pub fn cancela_evento(
         ctx: Context<ActualizaEvento>, _nombre:String, _motivo:String) -> Result<()>{
-            let cancelado = ctx.accounts.evento.cancelado;
+            
+            require!(!_motivo.trim().is_empty(),Errores::MotivoCancelacionVacio);
+            require!(_motivo.as_bytes().len()<= 120,Errores::MotivoCancelacionLargo);
+            
             ctx.accounts.evento.cancelado = true;
             ctx.accounts.evento.motivo_cancelacion = _motivo.to_string();
 
@@ -130,6 +139,10 @@ pub enum Errores {
     CapacidadMaxVacia,
     #[msg("Error, La fecha proporcionada es invalida")]
     FechaInvalida,
+    #[msg("Error, El motivo de cancelación no puede estar vació")]
+    MotivoCancelacionVacio,
+    #[msg("Error, El motivo de cancelación Es muy largo")]
+    MotivoCancelacionLargo,
 }
 /* Estructuras de cuentas
 */
@@ -254,6 +267,16 @@ pub struct NuevoRecinto<'info> {
     pub recinto: Account<'info, Recinto>,
     pub system_program: Program<'info, System>,
 }
+
+#[derive(Accounts)]
+pub struct EliminaRecinto<'info>{
+    #[account(mut)]
+    pub owner: Signer<'info>,
+
+    #[account(mut, has_one = owner, close = owner)]
+    pub recinto: Account<'info, Recinto>
+}
+
 
 #[derive(Accounts)]
 #[instruction(yyyy: u16, mm:u8, dd:u8, bloque:BloqueHorario)]
