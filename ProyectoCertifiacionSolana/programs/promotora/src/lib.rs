@@ -64,8 +64,8 @@ pub mod promotora {
     }
 
     pub fn elimina_recinto(
-        ctx: Context<EliminaRecinto>,
-    ) -> Result<()>{
+        ctx: Context<EliminaRecinto>
+        ) -> Result<()> {
         Ok(())
     }
 
@@ -109,20 +109,24 @@ pub mod promotora {
         Ok(())
     }
 
-    pub fn cancela_evento(
-        ctx: Context<ActualizaEvento>, _nombre:String, _motivo:String) -> Result<()>{
-            
-            require!(!_motivo.trim().is_empty(),Errores::MotivoCancelacionVacio);
-            require!(_motivo.as_bytes().len()<= 120,Errores::MotivoCancelacionLargo);
-            
-            ctx.accounts.evento.cancelado = true;
-            ctx.accounts.evento.motivo_cancelacion = _motivo.to_string();
+    pub fn cancela_evento(ctx: Context<ActualizaEvento>, _motivo: String) -> Result<()> {
+        require!(!_motivo.trim().is_empty(), Errores::MotivoCancelacionVacio);
+        require!(
+            _motivo.as_bytes().len() <= 120,
+            Errores::MotivoCancelacionLargo
+        );
+        require!(!ctx.accounts.evento.cancelado, Errores::EventoYaCancelado);
 
-            msg!(
-                "El evento {} fue cancelado con el motivo:{}",_nombre,_motivo
-            );
-            Ok(())
-        }
+        ctx.accounts.evento.cancelado = true;
+        ctx.accounts.evento.motivo_cancelacion = _motivo.to_string();
+
+        msg!(
+            "El evento {} fue cancelado con el motivo:{}",
+            ctx.accounts.evento.nombre_evento,
+            _motivo
+        );
+        Ok(())
+    }
 }
 
 #[error_code]
@@ -143,6 +147,8 @@ pub enum Errores {
     MotivoCancelacionVacio,
     #[msg("Error, El motivo de cancelación Es muy largo")]
     MotivoCancelacionLargo,
+    #[msg("Error, El evento ya esta cancelado")]
+    EventoYaCancelado,
 }
 /* Estructuras de cuentas
 */
@@ -172,19 +178,6 @@ pub struct Recinto {
     pub recinto_nombre: String, //Nombre del recinto
     pub recinto_num: u64, //Identifica cual es el numero y en que momento se creo para cada promotora
     pub capacidad_maxima: u32, // Para validar al momento de crear las secciónes y no exceder la capacidad.
-    pub activo: bool,
-}
-
-#[account]
-#[derive(InitSpace)]
-pub struct Seccion {
-    pub owner: Pubkey,
-    pub recinto_pda: Pubkey,
-    #[max_len(60)]
-    pub seccion_nombre: String, //General - A
-    #[max_len(6)]
-    pub seccion_id: String,
-    pub capacidad: u32,
     pub activo: bool,
 }
 
@@ -219,6 +212,19 @@ pub struct Evento {
     pub cancelado: bool,
     #[max_len(120)]
     pub motivo_cancelacion: String,
+}
+
+#[account]
+#[derive(InitSpace)]
+pub struct Seccion {
+    pub owner: Pubkey,
+    pub recinto_pda: Pubkey,
+    #[max_len(60)]
+    pub seccion_nombre: String, //General - A
+    #[max_len(6)]
+    pub seccion_id: String,
+    pub capacidad: u32,
+    pub activo: bool,
 }
 
 //-------------------------------------
@@ -269,17 +275,16 @@ pub struct NuevoRecinto<'info> {
 }
 
 #[derive(Accounts)]
-pub struct EliminaRecinto<'info>{
+pub struct EliminaRecinto<'info> {
     #[account(mut)]
     pub owner: Signer<'info>,
 
     #[account(mut, has_one = owner, close = owner)]
-    pub recinto: Account<'info, Recinto>
+    pub recinto: Account<'info, Recinto>,
 }
 
-
 #[derive(Accounts)]
-#[instruction(yyyy: u16, mm:u8, dd:u8, bloque:BloqueHorario)]
+#[instruction(nombre: String, yyyy: u16, mm:u8, dd:u8, bloque:BloqueHorario)]
 pub struct NuevoEvento<'info> {
     #[account(mut)]
     pub owner: Signer<'info>,
@@ -306,7 +311,7 @@ pub struct NuevoEvento<'info> {
 }
 
 #[derive(Accounts)]
-pub struct ActualizaEvento<'info>{
+pub struct ActualizaEvento<'info> {
     pub owner: Signer<'info>,
 
     #[account(mut, has_one = owner)]
